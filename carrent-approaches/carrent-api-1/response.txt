@@ -1,0 +1,1 @@
+{"id":1,"type":"BMW","model":"m3","registrationNumber":"D1King","productionYear":2024}
