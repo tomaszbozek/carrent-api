@@ -7,7 +7,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,10 +28,12 @@ class CarrentApi3 {
 	private final CarRepository carRepository;
 	private final RedisTemplate<String, String> redisTemplate;
 	private final ObjectMapper objectMapper;
+	private final CarDataProducer carDataProducer;
 
 	@PostMapping("/cars")
 	public CarDto addCar(@RequestBody CarDto carDto) {
 		redisTemplate.opsForValue().set("car", asString(carDto));
+		carDataProducer.send(carDto);
 		return Optional.of(carRepository.save(new Car(
 				carDto.type(),
 				carDto.model(),

@@ -12,9 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+@EmbeddedKafka(partitions = 1, topics = {CarTopics.CAR_TOPIC})
 @Transactional
 @ActiveProfiles("test")
 @SpringBootTest
@@ -29,6 +31,9 @@ class CarrentApi3ApplicationTests {
 
 	@Autowired
 	private ObjectMapper objectMapper;
+
+	@Autowired
+	private CarDataConsumer carDataConsumer;
 
 	private static final String CAR_KEY = "car";
 
@@ -85,7 +90,6 @@ class CarrentApi3ApplicationTests {
 				.body("registrationNumber", equalTo("9999"))
 				.body("productionYear", equalTo(2023));
 
-		// Verify the car is stored in Redis
 		CarDto car = objectMapper.readValue(redisTemplate.opsForValue().get(CAR_KEY), CarDto.class);
 		assert car != null;
 		assert car.id() == 3;
@@ -93,5 +97,13 @@ class CarrentApi3ApplicationTests {
 		assert car.model().equals("F150");
 		assert car.registrationNumber().equals("9999");
 		assert car.productionYear() == 2023;
+
+		assert carDataConsumer.awaitLatch(10);
+		String payload = carDataConsumer.getPayload();
+		assert payload.contains("\"id\":3");
+		assert payload.contains("\"type\":\"Truck\"");
+		assert payload.contains("\"model\":\"F150\"");
+		assert payload.contains("\"registrationNumber\":\"9999\"");
+		assert payload.contains("\"productionYear\":2023");
 	}
 }
